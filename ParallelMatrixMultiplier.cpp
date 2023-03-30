@@ -1,6 +1,6 @@
 #include <iostream>
 #include <mpi.h>
-#include "MatrixOperations.h"
+#include "MatrixUtils.h"
 
 class MultiplierException : public std::runtime_error {
 public:
@@ -39,17 +39,17 @@ void createGridCommunicators() {
   // Number of processes in each dimension of the grid
   int dimSize[NUM_OF_DIMS_OF_CARTESIAN_GRID];
 
-  // logical array specifying whether the grid is periodic (true = 1) or not (false = 0) in each dimension
+  // Logical array specifying whether the grid is periodic (true = 1) or not (false = 0) in each dimension
   int periodic[NUM_OF_DIMS_OF_CARTESIAN_GRID];
 
-  // logical array specifying whether the grid dimension should be fixed (true = 1) or not (false = 0)
+  // Logical array specifying whether the grid dimension should be fixed (true = 1) or not (false = 0)
   int subDimension[NUM_OF_DIMS_OF_CARTESIAN_GRID];
 
   dimSize[0] = p1;
   dimSize[1] = p2;
 
-  periodic[0] = 1;
-  periodic[1] = 1;
+  periodic[0] = 0;
+  periodic[1] = 0;
 
   // Creation of the Cartesian communicator
   MPI_Cart_create(MPI_COMM_WORLD, NUM_OF_DIMS_OF_CARTESIAN_GRID, dimSize, periodic, 1, &GridComm);
@@ -76,8 +76,8 @@ void createGridCommunicators() {
   MPI_Cart_sub(GridComm, subDimension, &ColComm);
 }
 
-void initializeProcess(double *&pAMatrix, double *&pBMatrix, double *&pCMatrix,
-                       double *&pAblock, double *&pBblock, double *&pCblock, int &ABlockSize, int &BBlockSize) {
+void init(double *&pAMatrix, double *&pBMatrix, double *&pCMatrix,
+          double *&pAblock, double *&pBblock, double *&pCblock, int &ABlockSize, int &BBlockSize) {
   ABlockSize = n1 / p1;
   BBlockSize = n3 / p2;
 
@@ -89,16 +89,16 @@ void initializeProcess(double *&pAMatrix, double *&pBMatrix, double *&pCMatrix,
     pAMatrix = new double[n1 * n2];
     pBMatrix = new double[n2 * n3];
     pCMatrix = new double[n1 * n3];
-    dataInitialization(pAMatrix, n1, n2);
-    dataInitialization(pBMatrix, n2, n3);
+    dataInit(pAMatrix, n1, n2);
+    dataInit(pBMatrix, n2, n3);
     setToZero(pCMatrix, n1, n3);
   }
 
   setToZero(pCblock, ABlockSize, BBlockSize);
 }
 
-void terminateProcess(const double *AMatrix, const double *BMatrix,
-                      const double *CMatrix, const double *Ablock, const double *Bblock, const double *Cblock) {
+void terminate(const double *AMatrix, const double *BMatrix,
+               const double *CMatrix, const double *Ablock, const double *Bblock, const double *Cblock) {
 
   if (ProcRank == 0) {
     delete[] AMatrix;
@@ -119,15 +119,15 @@ void dataDistribution(double *AMatrix, double *BMatrix, double *Ablock,
   }
 
   MPI_Bcast(Ablock, ABlockSize * n2, MPI_DOUBLE, 0, RowComm);
-  MPI_Datatype col, coltype;
+  MPI_Datatype col, colType;
 
   MPI_Type_vector(n2, BBlockSize, n3, MPI_DOUBLE, &col);
   MPI_Type_commit(&col);
-  MPI_Type_create_resized(col, 0, BBlockSize * sizeof(double), &coltype);
-  MPI_Type_commit(&coltype);
+  MPI_Type_create_resized(col, 0, BBlockSize * sizeof(double), &colType);
+  MPI_Type_commit(&colType);
 
   if (GridCoords[0] == 0) {
-    MPI_Scatter(BMatrix, 1, coltype, Bblock, n2 * BBlockSize,
+    MPI_Scatter(BMatrix, 1, colType, Bblock, n2 * BBlockSize,
                 MPI_DOUBLE, 0, RowComm);
   }
 
@@ -169,8 +169,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Memory allocation and initialization of matrix elements
-    initializeProcess(AMatrix, BMatrix, CMatrix, Ablock, Bblock,
-                      Cblock, ABlockSize, BBlockSize);
+    init(AMatrix, BMatrix, CMatrix, Ablock, Bblock,
+         Cblock, ABlockSize, BBlockSize);
 
     double startTime;
 
@@ -189,12 +189,12 @@ int main(int argc, char *argv[]) {
     // Gather all data in one matrix
 
     // the first step is creating a block type and resizing it
-    MPI_Datatype block, blocktype;
+    MPI_Datatype block, blockType;
     MPI_Type_vector(ABlockSize, BBlockSize, n3, MPI_DOUBLE, &block);
     MPI_Type_commit(&block);
 
-    MPI_Type_create_resized(block, 0, BBlockSize * sizeof(double), &blocktype);
-    MPI_Type_commit(&blocktype);
+    MPI_Type_create_resized(block, 0, BBlockSize * sizeof(double), &blockType);
+    MPI_Type_commit(&blockType);
 
     // calculate displ
     int *displ = new int[p1 * p2];
@@ -220,7 +220,7 @@ int main(int argc, char *argv[]) {
     }
 
     MPI_Gatherv(Cblock, blockSize, MPI_DOUBLE, CMatrix,
-                rcount, displ, blocktype, 0, MPI_COMM_WORLD);
+                rcount, displ, blockType, 0, MPI_COMM_WORLD);
 
     if (ProcRank == 0) {
       double endTime = MPI_Wtime();
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
       printf("That took %lf seconds\n", endTime - startTime);
     }
 
-    terminateProcess(AMatrix, BMatrix, CMatrix, Ablock, Bblock, Cblock);
+    terminate(AMatrix, BMatrix, CMatrix, Ablock, Bblock, Cblock);
     delete[] displ;
     delete[] rcount;
     MPI_Finalize();

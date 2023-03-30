@@ -1,7 +1,7 @@
-#ifndef PARALLELMATRIXMUL_MATRIXOPERATIONS_H
-#define PARALLELMATRIXMUL_MATRIXOPERATIONS_H
+#ifndef PARALLELMATRIXMUL_MATRIXUTILS_H
+#define PARALLELMATRIXMUL_MATRIXUTILS_H
 
-void dataInitialization(double *pMatrix, int rowCount, int colCount);
+void dataInit(double *pMatrix, int rowCount, int colCount);
 
 void printMatrix(const double *pMatrix, int RowCount, int ColCount);
 
@@ -14,4 +14,4 @@ void matrixMul(const double *pAMatrix, const double *pBMatrix, double *pCMatrix,
 
 void printVector(const int *pVector, int Size, int ProcNum);
 
-#endif //PARALLELMATRIXMUL_MATRIXOPERATIONS_H
+#endif

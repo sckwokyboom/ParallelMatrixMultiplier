@@ -6,7 +6,7 @@ find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
 
 set(SOURCES
-        MatrixOperations.cpp
+        MatrixUtils.cpp
         ParallelMatrixMultiplier.cpp)
 
 SET(CMAKE_C_COMPILER mpicc)

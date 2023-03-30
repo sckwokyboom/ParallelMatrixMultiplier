@@ -1,4 +1,4 @@
-#include "MatrixOperations.h"
+#include "MatrixUtils.h"
 #include <mpi.h>
 #include <cstdlib>
 
@@ -6,7 +6,7 @@ double randDouble() {
   return (double) rand() / RAND_MAX * 50.0 - 2.0;
 }
 
-void dataInitialization(double *pMatrix, int rowCount, int colCount) {
+void dataInit(double *pMatrix, int rowCount, int colCount) {
   for (int i = 0; i < rowCount; i++) {
     for (int j = 0; j < colCount; j++) {
       pMatrix[i * colCount + j] = randDouble();
