@@ -2,9 +2,9 @@
 #include <mpi.h>
 #include "MatrixUtils.h"
 
-class MultiplierException : public std::runtime_error {
+class MultiplierInvalidArgumentsException : public std::runtime_error {
 public:
-  explicit MultiplierException(const std::string &message) : std::runtime_error(message) {}
+  explicit MultiplierInvalidArgumentsException(const std::string &message) : std::runtime_error(message) {}
 };
 
 static constexpr int NUM_OF_DIMS_OF_CARTESIAN_GRID = 2;
@@ -30,12 +30,6 @@ static constexpr int n2 = 8;
 static constexpr int n3 = 9;
 
 void createGridCommunicators() {
-  if (p1 * p2 > ProcNum) {
-    throw MultiplierException(std::string("There are not enough processes for a launch. Expected: ")
-                              + std::to_string(p1 * p2)
-                              + std::string(" or more processes, got: ")
-                              + std::to_string(ProcNum) + std::string(" processes."));
-  }
   // Number of processes in each dimension of the grid
   int dimSize[NUM_OF_DIMS_OF_CARTESIAN_GRID];
 
@@ -156,10 +150,14 @@ int main(int argc, char *argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &ProcNum);
   MPI_Comm_rank(MPI_COMM_WORLD, &ProcRank);
   try {
+    if (p1 * p2 > ProcNum) {
+      throw MultiplierInvalidArgumentsException(std::string("There are not enough processes for a launch. Expected: ")
+                                                + std::to_string(p1 * p2)
+                                                + std::string(" or more processes, got: ")
+                                                + std::to_string(ProcNum) + std::string(" processes."));
+    }
     if ((n1 % p1 != 0) || (n3 % p2 != 0)) {
-      if (ProcRank == 0) {
-        throw MultiplierException("Invalid grid size.");
-      }
+      throw MultiplierInvalidArgumentsException("Invalid grid size.");
     } else {
       if (ProcRank == 0) {
         printf("Parallel matrix multiplication program, on %d processes\n", ProcNum);
@@ -235,7 +233,9 @@ int main(int argc, char *argv[]) {
     delete[] rcount;
     MPI_Finalize();
   } catch (std::runtime_error &error) {
-    std::cerr << error.what() << std::endl;
+    if (ProcRank == 0) {
+      std::cerr << error.what() << std::endl;
+    }
     MPI_Finalize();
   }
   return 0;

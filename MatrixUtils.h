@@ -10,7 +10,7 @@ void printVector(const double *pVector, int Size, int ProcNum);
 void setToZero(double *pMatrix, int rowCount, int colCount);
 
 void matrixMul(const double *pAMatrix, const double *pBMatrix, double *pCMatrix,
-               int n1, int n2, int n3);
+               int heightA, int widthAheightB, int widthB);
 
 void printVector(const int *pVector, int Size, int ProcNum);
 

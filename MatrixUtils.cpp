@@ -55,12 +55,17 @@ void printMatrix(const double *pMatrix, int rowCount, int colCount) {
 }
 
 // Function for matrix multiplication
-void matrixMul(const double *pAMatrix, const double *pBMatrix, double *pCMatrix, int n1, int n2, int n3) {
-  // Loop variables
-  int i, j, k;
-  for (i = 0; i < n1; i++) {
-    for (j = 0; j < n3; j++)
-      for (k = 0; k < n2; k++)
-        pCMatrix[i * n3 + j] += pAMatrix[i * n2 + k] * pBMatrix[k * n3 + j];
+void matrixMul(const double *pAMatrix, const double *pBMatrix, double *pCMatrix, int heightA, int widthAheightB,
+               int widthB) {
+  for (int i = 0; i < heightA; ++i) {
+    double *c = pCMatrix + i * widthB;
+    for (int j = 0; j < widthB; ++j)
+      c[j] = 0;
+    for (int k = 0; k < widthAheightB; ++k) {
+      const double *b = pBMatrix + k * widthB;
+      double a = pAMatrix[i * heightA + k];
+      for (int j = 0; j < widthB; ++j)
+        c[j] += a * b[j];
+    }
   }
 }
